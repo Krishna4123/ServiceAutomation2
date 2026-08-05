@@ -45,6 +45,16 @@ def test_supervisor_extracts_bare_order_number(mock_llm):
     assert result.slots.get("order_id") == "ORD-100002"
 
 
+@patch("app.graph.nodes.supervisor.chat_completion", return_value="warranty")
+def test_supervisor_extracts_product_for_warranty(mock_llm):
+    """'warranty info for ZenStream' must extract ZenStream product slot and keep intent as warranty."""
+    from app.graph.nodes.supervisor import supervisor_node
+    state = _make_state(current_input="warranty info for ZenStream")
+    result = supervisor_node(state)
+    assert result.intent == "warranty"
+    assert result.slots.get("product") == "ZenStream"
+
+
 # ── Clarify node ───────────────────────────────────────────────────────────────
 
 @patch("app.graph.nodes.clarify.chat_completion", return_value="Could you clarify what product you mean?")

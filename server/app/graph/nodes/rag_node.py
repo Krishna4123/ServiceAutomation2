@@ -14,14 +14,21 @@ Be concise, friendly, and precise. Cite the source document name when relevant."
 
 def rag_node(state: ConversationState) -> ConversationState:
     """Retrieves policy docs via FAISS and generates a grounded LLM response."""
-    chunks = retrieve(state.current_input, k=4)
+    product = state.slots.get("product")
+    retrieval_query = f"{product} {state.current_input}" if product else state.current_input
+    
+    chunks = retrieve(retrieval_query, k=4)
     sources = list({c["source"] for c in chunks})
     context = "\n\n".join(f"[{c['source']}]\n{c['content']}" for c in chunks)
 
+    user_content = f"Context:\n{context}\n\nQuestion: {state.current_input}"
+    if product:
+        user_content = f"Product context: The customer is asking specifically about the product: {product}.\n\n" + user_content
+
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {state.current_input}"},
+        {"role": "user", "content": user_content},
     ]
     reply = chat_completion(messages, temperature=0.2, max_tokens=512)
-    logger.info("RAG node replied | sources=%s | session=%s", sources, state.session_id)
+    logger.info("RAG node replied | product=%s | sources=%s | session=%s", product, sources, state.session_id)
     return state.model_copy(update={"reply": reply, "sources": sources})

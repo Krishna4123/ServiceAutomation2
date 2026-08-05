@@ -10,9 +10,6 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Intent classification prompt
 # ---------------------------------------------------------------------------
-# IMPORTANT: The LLM must return EXACTLY one token from the list below.
-# We enumerate them explicitly and give examples to prevent the model from
-# returning free-form text, adding spaces, or using a synonym.
 SYSTEM_PROMPT = """You are a customer support routing classifier. Your ONLY job is to output one of these exact intent labels:
 
 greetings         – hello, hi, how are you, good morning, simple chitchat
@@ -20,6 +17,9 @@ order_status      – asking about an order, tracking number, delivery, shipping
 troubleshooting   – device not working, technical problem, error, bug, won't turn on, slow, crash
 subscription      – billing, payment, plan, subscription, invoice, cancel, upgrade, downgrade, refund
 general           – general product questions, policy, pricing, warranty, returns, FAQs
+warranty          – warranty info, warranty policy, limited manufacturer warranty coverage
+pricing           – pricing info, price lists, cost, how much does it cost
+subscription_policy – rules about subscription cancellation, refund policy, plan details
 escalate          – angry customer, legal threat, repeated failures, urgent safety issue, ask for manager
 clarify           – completely ambiguous, cannot determine any of the above with confidence
 
@@ -27,6 +27,8 @@ Rules:
 - Reply with ONLY the single intent keyword. No punctuation, no explanation, no spaces.
 - If unsure between two intents, pick the most specific one.
 - A message mentioning an order ID (e.g. "100002", "ORD-100002") → order_status
+- A message mentioning warranty, warranty policy, returns policy → warranty
+- A message mentioning pricing, costs → pricing
 - A message mentioning billing or subscription → subscription
 - Do NOT output "order status" (with a space) — output "order_status" (with underscore)
 
@@ -35,7 +37,8 @@ Examples:
 "where is my order 100002" → order_status
 "my tablet won't turn on" → troubleshooting
 "I want to cancel my plan" → subscription
-"what is your warranty policy" → general
+"what is your warranty policy" → warranty
+"how much does NovaPro cost" → pricing
 "I'm very angry and will sue you" → escalate
 "help" → clarify"""
 
@@ -46,17 +49,14 @@ Examples:
 
 def _extract_order_id(text: str) -> str | None:
     """Extracts an order ID from user text, handling ORD-XXXXX or bare 5-6 digit numbers."""
-    # Explicit ORD- prefix (canonical form)
     m = re.search(r"\bORD[-\s]?(\d{5,8})\b", text, re.IGNORECASE)
     if m:
         return f"ORD-{m.group(1)}"
 
-    # "order ID 100002" / "order # 100002" / "order number 100002"
     m = re.search(r"order\s*(?:id|#|number|num|no\.?|:)?\s*(\d{5,8})\b", text, re.IGNORECASE)
     if m:
         return f"ORD-{m.group(1)}"
 
-    # "ID 100002" by itself when the surrounding context is about orders
     m = re.search(r"\b(?:id|#)\s*(\d{5,8})\b", text, re.IGNORECASE)
     if m:
         return f"ORD-{m.group(1)}"
@@ -72,6 +72,26 @@ def _extract_account_id(text: str) -> str | None:
     return None
 
 
+def _extract_product_name(text: str) -> str | None:
+    """Extracts known product names from text to help ground RAG answers."""
+    products = [
+        "NovaPro Wireless Headphones",
+        "NovaPro",
+        "AuraTab 10 Inch Tablet",
+        "AuraTab",
+        "ZenStream 4K Streaming Stick",
+        "ZenStream",
+        "PulseWatch Gen 3",
+        "PulseWatch",
+        "CloudSync Smart Speaker",
+        "CloudSync"
+    ]
+    for p in products:
+        if re.search(rf"\b{re.escape(p)}\b", text, re.IGNORECASE):
+            return p
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Supervisor node
 # ---------------------------------------------------------------------------
@@ -82,6 +102,11 @@ VALID_INTENTS = frozenset({
     "troubleshooting",
     "subscription",
     "general",
+    "warranty",
+    "warranty_info",
+    "warranty_policy",
+    "pricing",
+    "subscription_policy",
     "escalate",
     "clarify",
 })
@@ -121,8 +146,10 @@ def supervisor_node(state: ConversationState) -> ConversationState:
         slots["account_id"] = account_id
         logger.info("Extracted account_id slot: %s", account_id)
 
-    # 3. If intent is order_status but we have absolutely no identifiers, keep clarify-like
-    #    intent so we ask — but we use the order_status node itself which already handles this.
+    product = _extract_product_name(state.current_input)
+    if product:
+        slots["product"] = product
+        logger.info("Extracted product slot: %s", product)
 
     logger.info(
         "Supervisor routing | intent=%s (raw=%r) | slots=%s | session=%s",

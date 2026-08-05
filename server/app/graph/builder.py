@@ -52,6 +52,10 @@ _INTENT_TO_NODE: dict[str, str] = {
     "warranty_question": "rag",
     "faq": "rag",
     "warranty": "rag",
+    "warranty_info": "rag",
+    "warranty_policy": "rag",
+    "pricing": "rag",
+    "subscription_policy": "rag",
     "policy": "rag",
     # Escalate
     "escalate": "escalate",
