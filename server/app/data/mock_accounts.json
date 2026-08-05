@@ -1,0 +1,122 @@
+[
+  {
+    "account_id": "ACC-001",
+    "name": "Sophia Martinez",
+    "email": "sophia.martinez@example.com",
+    "phone": "+1-555-0101",
+    "plan": "Premium",
+    "plan_renewal": "2026-09-01",
+    "billing_status": "current",
+    "joined_at": "2024-03-15"
+  },
+  {
+    "account_id": "ACC-002",
+    "name": "Liam Johnson",
+    "email": "liam.johnson@example.com",
+    "phone": "+1-555-0102",
+    "plan": "Basic",
+    "plan_renewal": "2026-08-20",
+    "billing_status": "current",
+    "joined_at": "2025-01-10"
+  },
+  {
+    "account_id": "ACC-003",
+    "name": "Aisha Patel",
+    "email": "aisha.patel@example.com",
+    "phone": "+1-555-0103",
+    "plan": "Enterprise",
+    "plan_renewal": "2026-12-31",
+    "billing_status": "current",
+    "joined_at": "2023-06-20"
+  },
+  {
+    "account_id": "ACC-004",
+    "name": "Noah Williams",
+    "email": "noah.williams@example.com",
+    "phone": "+1-555-0104",
+    "plan": "Premium",
+    "plan_renewal": "2026-08-10",
+    "billing_status": "overdue",
+    "joined_at": "2024-08-01"
+  },
+  {
+    "account_id": "ACC-005",
+    "name": "Emma Brown",
+    "email": "emma.brown@example.com",
+    "phone": "+1-555-0105",
+    "plan": "Basic",
+    "plan_renewal": "2026-09-15",
+    "billing_status": "current",
+    "joined_at": "2025-03-05"
+  },
+  {
+    "account_id": "ACC-006",
+    "name": "James Davis",
+    "email": "james.davis@example.com",
+    "phone": "+1-555-0106",
+    "plan": "Premium",
+    "plan_renewal": "2026-10-01",
+    "billing_status": "current",
+    "joined_at": "2024-11-22"
+  },
+  {
+    "account_id": "ACC-007",
+    "name": "Olivia Garcia",
+    "email": "olivia.garcia@example.com",
+    "phone": "+1-555-0107",
+    "plan": "Basic",
+    "plan_renewal": "2026-08-30",
+    "billing_status": "current",
+    "joined_at": "2025-02-14"
+  },
+  {
+    "account_id": "ACC-008",
+    "name": "William Chen",
+    "email": "william.chen@example.com",
+    "phone": "+1-555-0108",
+    "plan": "Enterprise",
+    "plan_renewal": "2027-01-01",
+    "billing_status": "current",
+    "joined_at": "2022-09-30"
+  },
+  {
+    "account_id": "ACC-009",
+    "name": "Isabella Lee",
+    "email": "isabella.lee@example.com",
+    "phone": "+1-555-0109",
+    "plan": "Premium",
+    "plan_renewal": "2026-11-15",
+    "billing_status": "current",
+    "joined_at": "2024-05-18"
+  },
+  {
+    "account_id": "ACC-010",
+    "name": "Ethan Robinson",
+    "email": "ethan.robinson@example.com",
+    "phone": "+1-555-0110",
+    "plan": "Basic",
+    "plan_renewal": "2026-09-30",
+    "billing_status": "cancelled",
+    "joined_at": "2025-04-01"
+  },
+  {
+    "account_id": "ACC-011",
+    "name": "Mia Thompson",
+    "email": "mia.thompson@example.com",
+    "phone": "+1-555-0111",
+    "plan": "Premium",
+    "plan_renewal": "2026-10-20",
+    "billing_status": "current",
+    "joined_at": "2024-07-07"
+  },
+  {
+    "account_id": "ACC-012",
+    "name": "Alexander White",
+    "email": "alex.white@example.com",
+    "phone": "+1-555-0112",
+    "plan": "Enterprise",
+    "plan_renewal": "2027-03-31",
+    "billing_status": "current",
+    "joined_at": "2023-01-15"
+  }
+]
