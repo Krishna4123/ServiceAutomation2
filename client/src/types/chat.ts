@@ -8,13 +8,13 @@ export interface Message {
   escalated?: boolean;
   sources?: string[];
   suggested_actions?: string[];
-  escalation?: EscalationInfo;
+  escalation_info?: EscalationInfo;
 }
 
 export interface EscalationInfo {
-  reason: string;
   ticket_id: string;
-  summary: string;
+  reason: string;
+  priority: string;
 }
 
 export interface SessionStartResponse {
@@ -36,10 +36,7 @@ export interface ChatResponse {
   session_id: string;
   reply: string;
   intent?: string;
-  status?: 'resolved' | 'clarifying' | 'escalated';
-  missing_slots?: string[];
-  escalated?: boolean;
+  escalated: boolean;
+  escalation_info?: EscalationInfo;
   sources?: string[];
-  suggested_actions?: string[];
-  escalation?: EscalationInfo;
 }

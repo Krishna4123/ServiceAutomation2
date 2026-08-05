@@ -1,13 +1,15 @@
 import { Cpu, Menu, RefreshCw, Sun, Moon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface HeaderProps {
   onMenuToggle: () => void;
   onResetSession: () => void;
   sessionId: string | null;
+  /** Optional slot for additional action buttons (e.g. ModeToggle) */
+  actions?: ReactNode;
 }
 
-export default function Header({ onMenuToggle, onResetSession, sessionId }: HeaderProps) {
+export default function Header({ onMenuToggle, onResetSession, sessionId, actions }: HeaderProps) {
   const [darkMode, setDarkMode] = useState<boolean>(
     () => document.documentElement.classList.contains('dark')
   );
@@ -45,6 +47,7 @@ export default function Header({ onMenuToggle, onResetSession, sessionId }: Head
       </div>
 
       <div className="flex items-center gap-2">
+        {actions}
         {sessionId && (
           <button
             onClick={onResetSession}

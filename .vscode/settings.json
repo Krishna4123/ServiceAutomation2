@@ -1,0 +1,6 @@
+{
+  "python.defaultInterpreterPath": "D:\\venv_gpu\\python.exe",
+  "python.analysis.extraPaths": [
+    "./server"
+  ]
+}

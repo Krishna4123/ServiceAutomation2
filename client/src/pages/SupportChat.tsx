@@ -3,34 +3,67 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
 import ChatInput from '../components/ChatInput';
+import VoiceModeUI from '../components/VoiceModeUI';
+import ModeToggle from '../components/ModeToggle';
 import { useSession } from '../hooks/useSession';
 import { useChat } from '../hooks/useChat';
-import { useVoice } from '../hooks/useVoice';
+import { useMode } from '../hooks/useMode';
+import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import { useVoicePlayback } from '../hooks/useVoicePlayback';
 import { AlertCircle } from 'lucide-react';
 
 export default function SupportChat() {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // ── Core state ──────────────────────────────────────────────────────────
   const { sessionId, greeting, loading: sessionLoading, error: sessionError, resetSession } = useSession();
   const { messages, sendMessage, isTyping, error: chatError, clearHistory } = useChat(sessionId, greeting);
-  const { isListening, startListening, stopListening, transcript, speak } = useVoice();
 
-  // Show error messages as transient toasts
+  // ── Mode (text vs. voice) ────────────────────────────────────────────────
+  const { mode, toggleMode } = useMode();
+
+  // ── Voice hooks ──────────────────────────────────────────────────────────
+  const {
+    recorderState,
+    startRecording,
+    stopRecording,
+    resetRecorder,
+    errorMessage: recorderError,
+    audioLevel,
+  } = useVoiceRecorder();
+
+  const {
+    playbackState,
+    speak,
+    stop: stopPlayback,
+    errorMessage: playbackError,
+  } = useVoicePlayback();
+
+  // ── Error toasts ─────────────────────────────────────────────────────────
   useEffect(() => {
     const errorMsg = sessionError || chatError;
-    if (errorMsg) {
-      setToastMessage(errorMsg);
-      const timer = setTimeout(() => setToastMessage(null), 5000);
-      return () => clearTimeout(timer);
-    }
+    if (!errorMsg) return;
+    setToastMessage(errorMsg);
+    const timer = setTimeout(() => setToastMessage(null), 5000);
+    return () => clearTimeout(timer);
   }, [sessionError, chatError]);
 
-  const handleSend = async (text: string, channel: 'chat' | 'voice' = 'chat') => {
+  // ── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Send a text message, optionally synthesising the reply with TTS. */
+  const handleSend = async (text: string, channel: 'chat' | 'voice' = 'chat'): Promise<void> => {
     const response = await sendMessage(text, channel);
-    // If sent via voice, synthesize speech reply
     if (response && channel === 'voice') {
-      speak(response.content);
+      void speak(response.content);
+    }
+  };
+
+  /** Called when user taps "Stop Recording" in VoiceModeUI. */
+  const handleStopRecording = async () => {
+    const transcription = await stopRecording();
+    if (transcription && transcription.trim()) {
+      await handleSend(transcription.trim(), 'voice');
     }
   };
 
@@ -41,6 +74,8 @@ export default function SupportChat() {
   const handleReset = () => {
     clearHistory();
     resetSession();
+    stopPlayback();
+    resetRecorder();
   };
 
   return (
@@ -59,31 +94,48 @@ export default function SupportChat() {
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           onResetSession={handleReset}
           sessionId={sessionId}
+          actions={<ModeToggle mode={mode} onToggle={toggleMode} />}
         />
 
-        {/* Global Loading / Info Indicators */}
+        {/* Session loading banner */}
         {sessionLoading && (
           <div className="bg-brand-50 dark:bg-brand-950/20 text-brand-600 dark:text-brand-400 py-1.5 px-4 text-center text-xs font-semibold animate-pulse border-b border-brand-100 dark:border-brand-950/30">
-            Establishing secure connection context...
+            Establishing secure connection context…
           </div>
         )}
 
-        {/* Interactive Chat Frame */}
+        {/* ── Chat transcript (always visible) ── */}
         <ChatWindow
           messages={messages}
           isTyping={isTyping}
           onSuggestedClick={handleSuggestedClick}
         />
 
-        {/* Input Bar */}
-        <ChatInput
-          onSend={handleSend}
-          isListening={isListening}
-          startListening={startListening}
-          stopListening={stopListening}
-          voiceTranscript={transcript}
-          disabled={sessionLoading || !!sessionError}
-        />
+        {/* ── Input layer — switches based on mode ── */}
+        {mode === 'text' ? (
+          <ChatInput
+            onSend={handleSend}
+            /* In text mode we pass no-ops for legacy voice mic button */
+            isListening={false}
+            startListening={() => {}}
+            stopListening={() => {}}
+            voiceTranscript=""
+            disabled={sessionLoading || !!sessionError}
+          />
+        ) : (
+          <VoiceModeUI
+            recorderState={recorderState}
+            playbackState={playbackState}
+            audioLevel={audioLevel}
+            recorderError={recorderError}
+            playbackError={playbackError}
+            onStartRecording={startRecording}
+            onStopRecording={handleStopRecording}
+            onStopPlayback={stopPlayback}
+            onResetError={resetRecorder}
+            disabled={sessionLoading || !!sessionError}
+          />
+        )}
 
         {/* Error Toast */}
         {toastMessage && (

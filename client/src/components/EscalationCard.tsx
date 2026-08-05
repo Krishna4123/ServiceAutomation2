@@ -2,10 +2,10 @@ import { AlertTriangle, UserCheck } from 'lucide-react';
 import { EscalationInfo } from '../types/chat';
 
 interface EscalationCardProps {
-  escalation: EscalationInfo;
+  escalationInfo: EscalationInfo;
 }
 
-export default function EscalationCard({ escalation }: EscalationCardProps) {
+export default function EscalationCard({ escalationInfo }: EscalationCardProps) {
   return (
     <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 space-y-3 shadow-sm max-w-2xl">
       <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-semibold text-sm">
@@ -17,16 +17,16 @@ export default function EscalationCard({ escalation }: EscalationCardProps) {
         <div className="flex items-baseline gap-1.5">
           <span className="font-semibold select-none min-w-[70px] inline-block text-amber-800 dark:text-amber-400">TICKET:</span>
           <span className="font-mono bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-amber-200/50 dark:border-amber-900/50 font-bold select-all">
-            {escalation.ticket_id}
+            {escalationInfo.ticket_id}
           </span>
         </div>
         <div className="flex items-baseline gap-1.5">
           <span className="font-semibold select-none min-w-[70px] inline-block text-amber-800 dark:text-amber-400">REASON:</span>
-          <span>{escalation.reason}</span>
+          <span>{escalationInfo.reason}</span>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="font-semibold select-none min-w-[70px] inline-block text-amber-800 dark:text-amber-400">SUMMARY:</span>
-          <span>{escalation.summary}</span>
+          <span className="font-semibold select-none min-w-[70px] inline-block text-amber-800 dark:text-amber-400">PRIORITY:</span>
+          <span className="capitalize font-medium text-amber-900 dark:text-amber-200">{escalationInfo.priority}</span>
         </div>
       </div>
 

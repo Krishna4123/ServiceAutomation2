@@ -12,14 +12,14 @@ interface MessageBubbleProps {
 export default function MessageBubble({ message, onSuggestedClick }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
-  if (message.status === 'escalated' && message.escalation) {
+  if (message.status === 'escalated' && message.escalation_info) {
     return (
       <div className="flex justify-start items-start gap-3 my-4 animate-fade-in">
         <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
           <Cpu className="w-4 h-4" />
         </div>
         <div className="flex-1">
-          <EscalationCard escalation={message.escalation} />
+          <EscalationCard escalationInfo={message.escalation_info} />
           {message.timestamp && (
             <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-1.5 ml-1">
               {message.timestamp}

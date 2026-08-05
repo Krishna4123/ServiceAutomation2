@@ -4,6 +4,7 @@ from langgraph.graph import StateGraph, END
 
 from app.graph.state import ConversationState
 from app.graph.nodes.supervisor import supervisor_node
+from app.graph.nodes.greetings import greetings_node
 from app.graph.nodes.clarify import clarify_node
 from app.graph.nodes.escalate import escalate_node
 from app.graph.nodes.rag_node import rag_node
@@ -19,16 +20,62 @@ logger = get_logger(__name__)
 
 # ── Intent router ─────────────────────────────────────────────────────────────
 
+# Exhaustive map: every string the supervisor (or a rogue LLM) might produce → node name.
+# Keys that map to the same node are intentional aliases.
+_INTENT_TO_NODE: dict[str, str] = {
+    # Greetings
+    "greetings": "greetings",
+    "greeting": "greetings",
+    "hello": "greetings",
+    "chitchat": "greetings",
+    # Order status
+    "order_status": "order_status",
+    "order status": "order_status",
+    "orderstatus": "order_status",
+    "check_order": "order_status",
+    "tracking": "order_status",
+    "delivery": "order_status",
+    # Troubleshooting
+    "troubleshooting": "troubleshooting",
+    "trouble_shooting": "troubleshooting",
+    "technical": "troubleshooting",
+    "technical_support": "troubleshooting",
+    # Subscription / billing
+    "subscription": "subscription",
+    "subscription_billing": "subscription",
+    "billing": "subscription",
+    "payment": "subscription",
+    # Policy / general → RAG
+    "general": "rag",
+    "policy_faq": "rag",
+    "pricing_question": "rag",
+    "warranty_question": "rag",
+    "faq": "rag",
+    "warranty": "rag",
+    "policy": "rag",
+    # Escalate
+    "escalate": "escalate",
+    "escalation": "escalate",
+    "escalation_request": "escalate",
+    "human": "escalate",
+    "agent": "escalate",
+    # Clarify
+    "clarify": "clarify",
+    "unclear": "clarify",
+    "ambiguous": "clarify",
+}
+
+
 def _route_intent(state: ConversationState) -> str:
-    """Conditional edge: routes to the appropriate worker node based on state.intent."""
-    return {
-        "order_status": "order_status",
-        "troubleshooting": "troubleshooting",
-        "subscription": "subscription",
-        "general": "rag",
-        "escalate": "escalate",
-        "clarify": "clarify",
-    }.get(state.intent or "general", "rag")
+    """Conditional edge: routes to the appropriate worker node based on state.intent.
+
+    Falls back to 'clarify' (never 'rag') when the intent is unknown — RAG must only
+    be reached by explicit policy/general intents, not as a catch-all.
+    """
+    intent_key = (state.intent or "").strip().lower()
+    node = _INTENT_TO_NODE.get(intent_key, "clarify")  # default → clarify, NOT rag
+    logger.debug("_route_intent: intent=%r → node=%s", intent_key, node)
+    return node
 
 
 # ── Graph construction ─────────────────────────────────────────────────────────
@@ -39,6 +86,7 @@ def _build_graph() -> StateGraph:
 
     # Nodes
     builder.add_node("supervisor", supervisor_node)
+    builder.add_node("greetings", greetings_node)
     builder.add_node("clarify", clarify_node)
     builder.add_node("escalate", escalate_node)
     builder.add_node("rag", rag_node)
@@ -54,6 +102,7 @@ def _build_graph() -> StateGraph:
         "supervisor",
         _route_intent,
         {
+            "greetings": "greetings",
             "clarify": "clarify",
             "escalate": "escalate",
             "rag": "rag",
@@ -64,14 +113,23 @@ def _build_graph() -> StateGraph:
     )
 
     # All worker nodes finish at END
-    for node in ["clarify", "escalate", "rag", "order_status", "troubleshooting", "subscription"]:
+    for node in ["greetings", "clarify", "escalate", "rag", "order_status", "troubleshooting", "subscription"]:
         builder.add_edge(node, END)
 
     return builder
 
 
+_WORKER_NODES = ["greetings", "clarify", "escalate", "rag", "order_status", "troubleshooting", "subscription"]
+
 # Compiled graph singleton
 _compiled_graph = _build_graph().compile()
+
+# ── Graph topology audit log (runs once at import time) ──────────────────────
+logger.info(
+    "LangGraph compiled | nodes=[supervisor, %s] | routing_targets=%s | fallback=clarify",
+    ", ".join(_WORKER_NODES),
+    list(_INTENT_TO_NODE.keys()),
+)
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
@@ -104,8 +162,11 @@ def run_graph(session_id: str, message: str, channel: str = "web") -> ChatRespon
 
     logger.info("Running graph | session=%s | message_len=%d", session_id, len(message))
 
-    # Invoke the compiled graph
-    result: ConversationState = _compiled_graph.invoke(state)
+    # Invoke the compiled graph — newer LangGraph versions return a plain dict
+    raw_result = _compiled_graph.invoke(state)
+    result: ConversationState = (
+        ConversationState(**raw_result) if isinstance(raw_result, dict) else raw_result
+    )
 
     # Append turn to history
     updated_messages = list(result.messages) + [

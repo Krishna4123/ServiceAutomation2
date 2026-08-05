@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     openai_api_key: str = "no-key-set"
     openai_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     llm_model: str = "gemini-2.5-flash"
+    tts_model: str = "gpt-4o-mini-tts"
+    stt_model: str = "whisper-1"
 
     # App
     app_env: str = "development"

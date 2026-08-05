@@ -67,10 +67,11 @@ export function useChat(sessionId: string | null, initialGreeting?: string) {
     try {
       const response = await apiSendMessage(sessionId, text, channel);
 
-      // Infer status from backend response values if status is not directly provided
+      // Infer status from backend response values
       let status: 'resolved' | 'clarifying' | 'escalated' = 'resolved';
-      if (response.escalated) status = 'escalated';
-      else if (response.intent === 'clarify' || (response.missing_slots && response.missing_slots.length > 0)) {
+      if (response.escalated) {
+        status = 'escalated';
+      } else if (response.intent === 'clarify') {
         status = 'clarifying';
       }
 
@@ -79,15 +80,14 @@ export function useChat(sessionId: string | null, initialGreeting?: string) {
         content: response.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         intent: response.intent,
-        status: response.status || status,
-        missing_slots: response.missing_slots,
+        status,
         escalated: response.escalated,
         sources: response.sources,
-        suggested_actions: response.suggested_actions || (response.intent === 'clarify' ? ['I need warranty info', 'I need troubleshooting'] : []),
-        escalation: response.escalation || (response.escalated ? {
+        suggested_actions: response.intent === 'clarify' ? ['I need warranty info', 'I need troubleshooting'] : [],
+        escalation_info: response.escalation_info || (response.escalated ? {
           ticket_id: response.reply.match(/TKT-[A-Z0-9]+/)?.[0] || 'TKT-PENDING',
           reason: 'Auto-escalation triggered by agent rules',
-          summary: 'User requested support requiring human intervention or hardware replacement approval.'
+          priority: 'normal'
         } : undefined)
       };
 
