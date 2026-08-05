@@ -120,7 +120,7 @@ def supervisor_node(state: ConversationState) -> ConversationState:
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": state.current_input},
     ]
-    raw_intent = chat_completion(messages, temperature=0.0, max_tokens=20)
+    raw_intent = chat_completion(messages, temperature=0.0, max_tokens=150)
 
     # Normalise: lower-case, strip whitespace/punctuation, replace spaces with underscores
     intent = raw_intent.strip().lower().replace(" ", "_").strip(".")
@@ -151,8 +151,27 @@ def supervisor_node(state: ConversationState) -> ConversationState:
         slots["product"] = product
         logger.info("Extracted product slot: %s", product)
 
+    # 3. Slot constraints check
+    missing_slots = []
+    if intent == "order_status":
+        if slots.get("order_id") is not None:
+            missing_slots = []
+        else:
+            missing_slots = ["order_id"]
+            intent = "clarify"
+
+    # Print debug log exactly as requested
+    print(f"Message: '{state.current_input}'")
+    print(f"Extracted intent: {intent}")
+    print(f"Extracted slots: {slots}")
+    print(f"Missing slots: {missing_slots}")
+
     logger.info(
         "Supervisor routing | intent=%s (raw=%r) | slots=%s | session=%s",
         intent, raw_intent.strip(), slots, state.session_id,
     )
-    return state.model_copy(update={"intent": intent, "slots": slots})
+    return state.model_copy(update={
+        "intent": intent,
+        "slots": slots,
+        "missing_slots": missing_slots,
+    })
